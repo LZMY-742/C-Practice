@@ -5,6 +5,13 @@
 #include <sstream>
 #include "shabi.h"
 #include <stack>
+#include <list>
+#include <algorithm>
+#include <numeric>
+#include <iterator>
+#include <bits/stdc++.h>
+#include "Sales_data.h"
+#include <functional>
 using std::cerr;
 using std::cin;
 using std::cout;
@@ -15,6 +22,11 @@ using std::ofstream;
 using std::stack;
 using std::string;
 using std::vector;
+using std::list;
+using std::ostream_iterator;
+using std::istream_iterator;
+
+using namespace std::placeholders;
 istream &xiba(istream &is)
 {
   int data;
@@ -52,43 +64,61 @@ string chu(int a,int b)
 {
   return std::to_string(a/b);
 }
+void elimDups(vector<string> &words)//清除vector中重复的单词
+{
+  sort(words.begin(),words.end());
+  auto end_itr = unique(words.begin(),words.end());
+  words.erase(end_itr,words.end());
+}
+bool isShorter(const string& s1, const string &s2)
+{
+  return s1.size()<s2.size();
+}
+bool compareIsbn( const Sales_data& s1,  const Sales_data& s2)
+{
+  return s1.isbn()<s2.isbn();//按isbn的字典顺序排序
+}
+bool moreThanFive (const string& s1)
+{
+  return s1.size()>5;
+}
+void biggies(vector<string> &words, vector<string>::size_type sz)
+{
+  elimDups(words);
+  auto end_sz = stable_partition(words.begin(),words.end(),[sz](const string& s){return s.size()>=sz;});
+  for_each(words.begin(),end_sz,[](const string& s){cout<<s<<" ";});
+}
+void xyz(int x, int y, int z)
+{
+	cout << "print: x=" << x << ",y=" << y << ",z=" << z << endl;
+}
+bool check_sz(const string& s, vector<string>::size_type sz)
+{
+  return s.size()>=sz;
+}
+void biggies2(vector<string> &words, vector<string>::size_type sz)
+{
+  elimDups(words);//删除重复的单词
+  auto end_sz = stable_partition(words.begin(),words.end(),bind(check_sz,_1,sz));
+  for_each(words.begin(),end_sz,[](const string& s){cout<<s<<" ";});
+}
+bool comp (const string& s1, const string& s2)
+{
+  return s1.size()==s2.size();
+}
+void elimDups_list(list<string>& words)
+{
+  words.sort();
+  words.unique();
+}
 int main()
 {
-  vector<string> v1{"10", "(", "25", "/", "5", ")", "7", "6"};
-  string linshi;
-  stack<string, vector<string>> stack1(v1); //新建stack stack1
-  while (!stack1.empty())
-  {
-    if (stack1.top() == ")") //如果栈顶是右括号
-    {
-      stack1.pop(); //弹出右括号
-      while (stack1.top() != "(") //在到左括号之前
-      {
-        linshi.insert(0, stack1.top()); //把每个元素插到linshi里
-        stack1.pop(); //把元素弹出
-        if (stack1.empty()) //如果没遇见左括号直接退出整个循环
-          break;
-      }
-    }
-    else //;如果没遇见右括号
-    {
-      stack1.pop(); //弹出元素
-    }
-  }
-  string shuzi = "0123456789";
-  size_t first_not_of = linshi.find_first_not_of(shuzi);//找出第一个不是数字的地方
-  string jieguo;
-  string a = linshi.substr(0, first_not_of);//第一个数字
-  string b = linshi.substr(first_not_of + 1);//运算符右边的数字
-  if (linshi[first_not_of] == '+')
-    jieguo = jia(stoi(a), stoi(b));
-  if (linshi[first_not_of] == '-')
-    jieguo = jian(stoi(a), stoi(b));
-  if (linshi[first_not_of] == '*')
-    jieguo = cheng(stoi(a), stoi(b));
-  if (linshi[first_not_of] == '/')
-    jieguo = chu(stoi(a), stoi(b));
-  stack1.push(jieguo);
-  cout << stack1.top()<<endl;
+  ifstream in("input.txt");
+  istream_iterator<string> str_in (in),end_in;
+  ostream_iterator<string> os(cout," ");
+  list<string> words;
+  copy(str_in,end_in,back_inserter(words));
+  elimDups_list(words);
+  copy(words.cbegin(),words.cend(),os);//测试代码
   return 0;
 }
