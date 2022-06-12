@@ -891,4 +891,430 @@
     ```C++
     vector<Type>::iterator nth = v.begin() + index;
     ```
+
+## 第十一章 关联容器
+
+- 题目
+  - 11.1: vector储存单个连续元素，用下标访问元素。map储存关键字-值对，可以用关键字找到对应的值。
+  - 11.2
+    - list: 需要在容器任何位置删添元素
+    - vector: 只需要在容器尾部删添元素，有随机访问需求
+    - deque: 只需要在容器首尾删添元素，有随机访问需求
+    - map: 储存字典型数据
+    - set: 坏值检验
+  - 11.3: 照抄作业
+
+    ```C++
+    int main()
+    {
+      ifstream in ("input.txt");
+      map<string, size_t> word_count;
+      string word;
+      while(in>>word)
+        ++word_count[word];
+      for(const auto &w : word_count)
+        cout<<w.first<<" occurs "<<w.second<<(w.second>1?" times":" time")<<endl;
+      return 0;
+    }
+    ```
+
+  - 11.4
+
+    ```C++
+    int main()
+    {
+      ifstream in ("input.txt");
+      map<string, size_t> word_count;
+      string word;
+      while(in>>word)
+      {
+        for(auto& c: word)
+          c = tolower(c);//消灭大小写
+        word.erase(remove_if(word.begin(),word.end(),ispunct),word.end());//消灭标点符号
+        ++word_count[word];
+      }
+      for(const auto &w : word_count)
+        cout<<w.first<<" occurs "<<w.second<<(w.second>1?" times":" time")<<endl;
+      return 0;
+    }
+    ```
+
+  - 11.5: 当只需要使用关键字时使用set，需要使用元素对，则应该使用map
+  - 11.6: set中关键字不能有重复，只使用关键字用set，要有更多操作用list
+  - 11.7
+
+    ```C++
+    int main()
+    {
+      map<string, vector<string>> families;
+      string firstName,lastName;
+      char flag = ' ';
+      while(true)
+      {
+        cout<<"Input the last name of the family: ";
+        cin>>lastName;
+        cout<<"Input the fist name of each family member: ";
+        while(cin>>firstName)
+        {
+          families[lastName].push_back(firstName);
+        }
+        cin.clear();
+        cout<<"More family? (Y/N)";
+        cin>>flag;
+        if(flag=='N')
+          break;
+      }
+      for(auto itr = families.begin(); itr!=families.end(); ++itr)
+      {
+        cout<<itr->first<<endl;
+        for(auto sitr = itr->second.begin();sitr!=itr->second.end();++sitr)
+          cout<<*sitr<<" ";
+        cout<<endl;
+      }
+      return 0;
+    }
+    ```
+
+  - 11.8 (可能是这样？)
+
+    ```C++
+    int main()
+    {
+      ifstream in("input.txt");
+      istream_iterator<string> str_itr(in),end_in;
+      set<string> word_map(str_itr,end_in);
+      vector<string> words;
+      copy(word_map.cbegin(),word_map.cend(),back_inserter(words));
+      for(auto s: word_map)
+        cout<<s<<endl;
+      return 0;
+    }
+    ```
+
+  - 11.9
+
+    ```C++
+    map<string,list<size_t>> connect; 
+    ```
+
+  - 11.10: 能，因为vector < int >>::iterator有<运算符
+  - 11.11
+
+    ```C++
+    multiset<Sales_data, bool (*)(const Sales_data& lhs, const Sales_data& rhs)> bookstore(compareIsbn);
+    ```
+
+  - 11.12
+
+    ```C++
+    int main()
+    {
+      string word;
+      int num = 0;
+      ifstream in("input.txt");
+      vector<pair<string, int>> pair_vec;
+      while(in>>word>>num&&word!="end")
+      {
+        pair_vec.push_back({word,num});
+      }
+      for(auto p: pair_vec)
+      cout<<p.first<<" "<<p.second<<endl;
+      return 0;
+    }
+    ```
+
+  - 11.13: 三种方法
+    1. push_back(make_pair(v1,v2));
+    2. push_back({v1,v2});
+    3. emplace_back(v1,v2); //直接构造我认为最直观
+  - 11.14
+
+    ```C++
+    int main()
+    {
+      ifstream in("input.txt");
+      map<string, vector<pair<string,string>>> families;
+      string firstName,lastName,birthDay;
+      while(in>>lastName)
+      {
+        while(in>>firstName>>birthDay && firstName!="end")
+        {
+          families[lastName].emplace_back(firstName,birthDay);
+        }
+      }
+      //以下为打印测试代码
+      for(auto itr = families.begin(); itr!=families.end(); ++itr)
+      {
+        cout<<itr->first<<endl;
+        for(auto sitr = itr->second.begin();sitr!=itr->second.end();++sitr)
+          cout<<sitr->first<<" "<<sitr->second<<" ";
+        cout<<endl;
+      }
+      return 0;
+    }
+    ```
+
+  - 11.15
+    - mapped_type:
+
+    ```C++
+    pair<int,vector<int>>
+    ```
+
+    - key_type: int
+    - value_type:
+
+    ```C++
+    vector<int>
+    ```
+
+  - 11.16
+
+  ```C++
+  int main()
+  {
+    map<string,int> sear{{"hh",3}};
+    auto itr = sear.begin();
+    itr->second = 4;
+    cout<<sear["hh"]<<endl;
+    return 0;
+  }
+  ```
+
+  - 11.17:
+    - 第一个调用：对multiset使用inserter合法
+    - 第二个调用：back_inserter需要用到push_back，multiset没有push_back，不合法
+    - 第三个嗲用：将关联容器拷贝到另一个容器合法
+    - 第四个调用：将关联容器拷贝到另一个容器合法
+  - 11.18
+
+    ```C++
+    map<string,size_t>::iterator map_it
+    ```
+
+  - 11.19
+
+  ```C++
+  using compareType = bool(*)(const Sales_data& lhs, const Sales_data& rhs);
+  multiset<Sales_data,compareType> bookstore(compareIsbn);
+  multiset<Sales_data, compareType>::iterator c_itr = bookstore.begin();
+  ```
+
+  - 11.20: 我觉得11.20的这个比11.3的更好理解
+
+  ```C++
+  int main()
+  {
+    map<string,size_t> word_count;
+    string word;
+    while(cin>>word)
+    {
+      auto ret = word_count.insert({word,1});
+      if(!ret.second)
+        ++ret.first->second;
+    }
+    return 0;
+  }
+  ```
+
+  - 11.21：将word_count插入{word,0}后返回的pair的第一个元素（指向新元素的迭代器）指向的元素的second成员（size_t)加一
+  - 11.22：
+
+    ```C++
+    pair<map<string,vector <int>>::iterator,bool>
+    ```
   
+  - 11.23
+
+  ```C++
+  int main()
+  {
+    std::ifstream in("input.txt");
+    multimap<string,vector<string>> family;
+    string lastName,firstName;
+    vector<string> child;
+    while(in>>lastName)
+    {
+      while(in>>firstName&& firstName!="end")
+      {
+        child.push_back(firstName);
+      }
+      family.insert({lastName,child});
+      child.clear();
+    }
+    string surname;
+    return 0;
+  }
+  ```
+
+- 11.24: 在m中搜索关键字为0的元素，没找到。插入一个关键字为0的元素，关联值进行值初始化，然后将1赋给关联值。
+- 11.25：该程序会报错。因为v本来是空的，而且vector的下标操作不会插入元素，所以访问v的第一个元素会报错
+- 11.26: 可以用key_type对map来进行下标操作。下标运算符返回的是mapped_type。
+  - eg: map<string, int> kk; //可以用来对map进行下标操作的是string，下标运算符将会返回的类型是int
+- 11.27: 不需要计数的时候使用find，需要计数的时候使用count
+- 11.28: map<string,int>::iterator target;
+- 11.29: upper_bound和lower_bound会返回相同的安全插入位置（不打乱容器顺序），equal_range会返回两个都指向关键字可以插入位置的迭代器
+- 11.30：pos.first就是equal_range返回的pair的第一个迭代器，也就是lower_bound。lower_bound访问second成员，就是map的关联值
+- 11.31
+
+  ```C++
+  int main()
+  {
+    multimap<string,string> author{{"Eric","PVZ"},{"Eric","KouB"},{"XYL","WXTL"}};
+    string target = "Eric";
+    auto itr = author.find(target);
+    while(itr!=author.end())
+    {
+      cout<<"Author "<<itr->first<<"'s book "<<itr->second<<" has been eliminated"<<endl;
+      author.erase(itr);
+      itr = author.find(target);
+    }
+    return 0;
+  }
+  ```
+
+- 11.32
+
+  ```C++
+  int main()
+  {
+    multimap<string,string> author{{"XYL","WXTL"},{"Eric","PVZ"},{"Eric","Abc"}};
+    map<string,set<string>> library;
+    auto it2 = author.begin();
+    for(it2;it2!=author.end();++it2)
+    {
+      library[it2->first].insert(it2->second);//因为set会自动排序，这样可以给作者的书名也按字典顺序排序
+    }
+    ostream_iterator<string> oitr (cout," ");
+    for(auto itr = library.cbegin();itr!=library.cend();++itr)
+    {
+      cout<<"Author: "<<itr->first<<" has books: ";
+      copy(itr->second.begin(),itr->second.end(),oitr);
+      cout<<endl;
+    }
+    return 0;
+  }
+  ```
+
+- 11.33
+
+  ```C++
+  #include <stdexcept>
+  #include <sstream>
+  using std::runtime_error;
+  using std::istringstream;
+  map<string,string> buildMap(ifstream &map_file)
+  {
+    map<string,string> trans_map;
+    string key, value;
+    while(map_file>>key && getline(map_file,value))
+    {
+      if(value.size()>1)
+        trans_map[key] = value.substr(1);
+      else
+        throw runtime_error("no rule for "+key);
+    }
+    return trans_map;
+  }
+  const string& transform(const string& s, const map<string,string>& m)
+  {
+    auto target_itr = m.find(s);
+    if(target_itr != m.cend())
+      return target_itr->second;
+    else
+      return s;
+  }
+  void word_transform(ifstream& map_file, ifstream& input)
+  {
+    auto trans_map = buildMap(map_file);
+    string text;
+    while(getline(input, text))
+    {
+      istringstream stream(text);
+      string word;
+      bool first = true;
+      while(stream>>word)
+      {
+        if(first)
+          first = false;
+        else
+          cout<<" ";
+        cout<<transform(word,trans_map);
+      }
+      cout<<endl;
+    }
+  }
+
+  int main()
+  {
+    ifstream map_file("input.txt"),input("input2.txt");
+    if(!map_file.is_open() || !input.is_open())
+      throw runtime_error("files cannot be opened!");
+    word_transform(map_file,input); //注意本程序有个漏洞是如果要替换的词在句子结尾，最后一位会是标点符号，这样程序就无法检测到要替换它因为标点符号和单词读取到一个string里了
+    return 0;
+  }
+  ```
+
+- 11.34: 下标运算符在关键字不在map中的情况下会自动创建这个键值对，把值值初始化。所以会修改map
+- 11.35: 如果重复出现多次同样的key值 ，用下标操作后面的value会替换前面的value，而insert则不会替换
+- 11.36：会抛出runtime_error "no rule for xxx"
+- 11.37：在关键字类型的元素没有明显的序关系的情况下，无序容器是非常有用的。在某些应用中，维护元素的序的代价非常高昂，此时无序容器也很有用，使用无序容器通常更为简单，不需要多余时间维护序列（通常也有更好的性能）。有序版本在key有明显顺序时更有用，容器自动维护序列（字典序）
+- 11.38
+  - 单词计数
+
+  ```C++
+  #include <unordered_map>
+  using std::unordered_map;
+  int main()
+  {
+    unordered_map<string, size_t> word_count;
+    string word;
+    while(cin>>word)
+    {
+      ++word_count[word];
+    }
+    for(const auto& s: word_count)
+      cout<<s.first<<" occurs "<<s.second<<(s.second>1?" times":" time")<<endl;
+    return 0;
+  }
+  ```
+
+  - 单词转换：只用改buildMap和transform的参数
+
+  ```C++
+  unordered_map<string,string> buildMap(ifstream &map_file)
+  {
+    unordered_map<string,string> trans_map;
+    string key, value;
+    while(map_file>>key && getline(map_file,value))
+    {
+      if(value.size()>1)
+        trans_map[key] = value.substr(1);
+      else
+        throw runtime_error("no rule for "+key);
+    }
+    return trans_map;
+  }
+  const string& transform(const string& s, const unordered_map<string,string>& m)
+  {
+    auto target_itr = m.find(s);
+    if(target_itr != m.cend())
+      return target_itr->second;
+    else
+      return s;
+  }
+  ```
+
+- 心得
+  - 头文件cctype，ispunct() 函数用来检测一个字符是否为标点符号或特殊字符
+  - 目前在头文件iostream中也可以使用，C++ 5.11已证明。把字符转换成小写字母,非字母字符不做出处理用法:
+
+    ```C++
+    int tolower(int c);
+    ```
+
+  - 关联容器，在映射类型中，标准库使用**关键字**<运算符来比较两个关键字
+  - 关联容器支持基本迭代器操作
+  - set可以便捷的过滤掉相同的元素
+  - 关键字是const类型的，无法被修改
+  - multimap和multiset没有下标操作，因为有相同元素

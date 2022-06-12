@@ -2,16 +2,22 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <sstream>
 #include "shabi.h"
 #include <stack>
 #include <list>
 #include <algorithm>
 #include <numeric>
 #include <iterator>
-#include <bits/stdc++.h>
 #include "Sales_data.h"
 #include <functional>
+#include <map>
+#include<set>
+#include <cctype>
+#include <utility>
+#include <stdexcept>
+#include <sstream>
+#include <unordered_map>
+
 using std::cerr;
 using std::cin;
 using std::cout;
@@ -25,100 +31,67 @@ using std::vector;
 using std::list;
 using std::ostream_iterator;
 using std::istream_iterator;
+using std::map;
+using std::set;
+using std::multiset;
+using std::pair;
+using std::multimap;
+using std::runtime_error;
+using std::istringstream;
+using std::unordered_map;
 
 using namespace std::placeholders;
-istream &xiba(istream &is)
+bool compareIsbn(const Sales_data& lhs, const Sales_data& rhs)
 {
-  int data;
-  while (is >> data)
+  return lhs.isbn()<rhs.isbn();
+}
+unordered_map<string,string> buildMap(ifstream &map_file)
+{
+  unordered_map<string,string> trans_map;
+  string key, value;
+  while(map_file>>key && getline(map_file,value))
   {
-    cout << data << endl;
+    if(value.size()>1)
+      trans_map[key] = value.substr(1);
+    else
+      throw runtime_error("no rule for "+key);
   }
-  cout << is.eof() << endl;
-  is.clear();
-  return is;
+  return trans_map;
 }
-string combine(const string &prefix, const string &name, const string &suffix) // 9.45
+const string& transform(const string& s, const unordered_map<string,string>& m)
 {
-  return prefix + " " + name + " " + suffix;
+  auto target_itr = m.find(s);
+  if(target_itr != m.cend())
+    return target_itr->second;
+  else
+    return s;
 }
-string combine2(const string &prefix, string &name, const string &suffix) // 9.46
+void word_transform(ifstream& map_file, ifstream& input)
 {
-  name.insert(0, prefix);
-  name.insert(name.size(), suffix);
-  return name;
+  auto trans_map = buildMap(map_file);
+  string text;
+  while(getline(input, text))
+  {
+    istringstream stream(text);
+    string word;
+    bool first = true;
+    while(stream>>word)
+    {
+      if(first)
+        first = false;
+      else
+        cout<<" ";
+      cout<<transform(word,trans_map);
+    }
+    cout<<endl;
+  }
 }
-string jia(int a, int b)
-{
-  return std::to_string(a+b);
-}
-string jian(int a, int b)
-{
-  return std::to_string(a-b); 
-}
-string cheng(int a,int b)
-{
-  return std::to_string(a*b);
-}
-string chu(int a,int b)
-{
-  return std::to_string(a/b);
-}
-void elimDups(vector<string> &words)//清除vector中重复的单词
-{
-  sort(words.begin(),words.end());
-  auto end_itr = unique(words.begin(),words.end());
-  words.erase(end_itr,words.end());
-}
-bool isShorter(const string& s1, const string &s2)
-{
-  return s1.size()<s2.size();
-}
-bool compareIsbn( const Sales_data& s1,  const Sales_data& s2)
-{
-  return s1.isbn()<s2.isbn();//按isbn的字典顺序排序
-}
-bool moreThanFive (const string& s1)
-{
-  return s1.size()>5;
-}
-void biggies(vector<string> &words, vector<string>::size_type sz)
-{
-  elimDups(words);
-  auto end_sz = stable_partition(words.begin(),words.end(),[sz](const string& s){return s.size()>=sz;});
-  for_each(words.begin(),end_sz,[](const string& s){cout<<s<<" ";});
-}
-void xyz(int x, int y, int z)
-{
-	cout << "print: x=" << x << ",y=" << y << ",z=" << z << endl;
-}
-bool check_sz(const string& s, vector<string>::size_type sz)
-{
-  return s.size()>=sz;
-}
-void biggies2(vector<string> &words, vector<string>::size_type sz)
-{
-  elimDups(words);//删除重复的单词
-  auto end_sz = stable_partition(words.begin(),words.end(),bind(check_sz,_1,sz));
-  for_each(words.begin(),end_sz,[](const string& s){cout<<s<<" ";});
-}
-bool comp (const string& s1, const string& s2)
-{
-  return s1.size()==s2.size();
-}
-void elimDups_list(list<string>& words)
-{
-  words.sort();
-  words.unique();
-}
+
 int main()
 {
-  ifstream in("input.txt");
-  istream_iterator<string> str_in (in),end_in;
-  ostream_iterator<string> os(cout," ");
-  list<string> words;
-  copy(str_in,end_in,back_inserter(words));
-  elimDups_list(words);
-  copy(words.cbegin(),words.cend(),os);//测试代码
+  ifstream map_file("input.txt"),input("input2.txt");
+  if(!map_file.is_open() || !input.is_open())
+    throw runtime_error("files cannot be opened!");
+  word_transform(map_file,input); //注意本程序有个漏洞是如果要替换的词在句子结尾，最后一位会是标点符号，这样程序就无法检测到要替换它因为标点符号和单词读取到一个string里了
   return 0;
 }

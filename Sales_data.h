@@ -19,7 +19,7 @@ class Sales_data
 private:
 	double revenue=0;
 	unsigned units_sold=0;
-	string bookNo="";//类内初始值
+	string bookNo="";//锟斤拷锟节筹拷始值
 	double avg_price();
 public:
 	Sales_data() :Sales_data("", 0, 0) {  }
@@ -37,6 +37,7 @@ public:
 	{
 		return bookNo;
 	}
+	
 };
 istream& read(istream& is,Sales_data&);
 ostream& print(ostream& os,const Sales_data&);
@@ -62,11 +63,11 @@ public:
 	Person(string n, string a) :name(n), address(a) {}
 	Person() = default;
 
-	string get_name() const//应该使用const因为函数没有改变内部变量
+	string get_name() const//应锟斤拷使锟斤拷const锟斤拷为锟斤拷锟斤拷没锟叫改憋拷锟节诧拷锟斤拷锟斤拷
 	{
 		return name;
 	}
-	string get_address() const//应该使用const因为函数没有改变内部变量
+	string get_address() const//应锟斤拷使锟斤拷const锟斤拷为锟斤拷锟斤拷没锟叫改憋拷锟节诧拷锟斤拷锟斤拷
 	{
 		return address;
 	}
