@@ -2,96 +2,64 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <memory>
 #include "shabi.h"
-#include <stack>
-#include <list>
-#include <algorithm>
-#include <numeric>
-#include <iterator>
+#include "SearchWord.h"
 #include "Sales_data.h"
-#include <functional>
-#include <map>
-#include<set>
-#include <cctype>
-#include <utility>
-#include <stdexcept>
-#include <sstream>
-#include <unordered_map>
 
-using std::cerr;
+
 using std::cin;
 using std::cout;
 using std::endl;
 using std::ifstream;
 using std::istream;
 using std::ofstream;
-using std::stack;
 using std::string;
 using std::vector;
-using std::list;
-using std::ostream_iterator;
-using std::istream_iterator;
-using std::map;
-using std::set;
-using std::multiset;
-using std::pair;
-using std::multimap;
-using std::runtime_error;
-using std::istringstream;
-using std::unordered_map;
+using std::shared_ptr;
 
-using namespace std::placeholders;
-bool compareIsbn(const Sales_data& lhs, const Sales_data& rhs)
+shared_ptr<vector<int>> vecFactory()
 {
-  return lhs.isbn()<rhs.isbn();
+  return std::make_shared<vector<int>>();
 }
-unordered_map<string,string> buildMap(ifstream &map_file)
+shared_ptr<vector<int>> read_vec(shared_ptr<vector<int>> v,istream& is)
 {
-  unordered_map<string,string> trans_map;
-  string key, value;
-  while(map_file>>key && getline(map_file,value))
+  int num=0;
+  while(is>>num)
+    (*v).push_back(num);
+  return v;
+}
+
+string make_plural(size_t ctr, const string &word, const string &ending)
+{
+  return (ctr>1)? word+ending : word;
+}
+std::ostream& print(std::ostream& os, QueryResult& qr) //definition for print
+{
+    os<<qr.sought<<" occurs "<<qr.count<<" "
+    <<make_plural(qr.count, "times", "s")<<endl;
+    for(auto num : *qr.lines)
+        os<<"\t(Line "<<num+1<<") "<<qr.file.get(num)<<endl;
+    return os;
+}
+
+void runQueries(ifstream &infile)
+{
+  TextQuery tq(infile);
+  do
   {
-    if(value.size()>1)
-      trans_map[key] = value.substr(1);
-    else
-      throw runtime_error("no rule for "+key);
-  }
-  return trans_map;
-}
-const string& transform(const string& s, const unordered_map<string,string>& m)
-{
-  auto target_itr = m.find(s);
-  if(target_itr != m.cend())
-    return target_itr->second;
-  else
-    return s;
-}
-void word_transform(ifstream& map_file, ifstream& input)
-{
-  auto trans_map = buildMap(map_file);
-  string text;
-  while(getline(input, text))
-  {
-    istringstream stream(text);
-    string word;
-    bool first = true;
-    while(stream>>word)
-    {
-      if(first)
-        first = false;
-      else
-        cout<<" ";
-      cout<<transform(word,trans_map);
-    }
-    cout<<endl;
-  }
+    /* code */
+    cout<<"enter word to look for, or q to quit: ";
+    string s;
+    if(!(cin>>s) || s== "q") break;
+    auto qr = tq.query(s); //不能把引用绑定在一个右值上
+    print(cout, qr)<<endl; 
+  } while (true);
 }
 
 int main()
 {
-  ifstream map_file("input.txt"),input("input2.txt");
-  if(!map_file.is_open() || !input.is_open())
-    throw runtime_error("files cannot be opened!");
-  word_transform(map_file,input); //注意本程序有个漏洞是如果要替换的词在句子结尾，最后一位会是标点符号，这样程序就无法检测到要替换它因为标点符号和单词读取到一个string里了
+  ifstream infile("input.txt");
+  runQueries(infile);
   return 0;
 }

@@ -892,6 +892,8 @@
     vector<Type>::iterator nth = v.begin() + index;
     ```
 
+---
+
 ## 第十一章 关联容器
 
 - 题目
@@ -1318,3 +1320,693 @@
   - set可以便捷的过滤掉相同的元素
   - 关键字是const类型的，无法被修改
   - multimap和multiset没有下标操作，因为有相同元素
+
+---
+
+## 第十二章 动态内存
+
+### 题目
+
+- 12.1: b1 b2各包含4个元素
+- 12.2
+
+  ```C++
+  class StrBlob
+  {
+      typedef vector<string>::size_type size_type;
+  public:
+      StrBlob():data(std::make_shared<vector<string>>()){ }
+      StrBlob(initializer_list<string> il):data(std::make_shared<vector<string>>(il)){ }
+      size_type size() const {return data->size();}
+      bool empty() const {return data->empty();}
+      void push_back(const string& t){data->push_back(t);}
+      void pop_back()
+      {
+          check(0,"pop_back on empty StrBlob");
+          data->pop_back();
+      }
+      string& front() const
+      {
+          check(0, "front on empty StrBlob");
+          return data->front();
+      }
+      string& back() const
+      {
+          check(0, "back on empty StrBlob");
+          return data->back();
+      }
+  private:
+      shared_ptr<vector<string>> data;
+      void check(size_type i, const string &msg) const
+      {
+          if(i >= data->size())
+              throw out_of_range(msg);
+      }
+
+  };
+  ```
+
+- 12.3: 不需要，因为 **pop_back** 和 **push_back** 改变了vector，一个常量对象不应该能够去改变成员
+- 12.4：因为i是size_type类型，即使是负数也会自动转换成非负
+- 12.5
+  - 优点：抑制了隐式转换，必须清楚的知道类型
+  - 缺点：不够简单方便
+- 12.6
+
+  ```C++
+  vector<int>* vecFactory()
+  {
+    return new vector<int>;
+  }
+  vector<int>* read_vec(vector<int>* v,istream& is)
+  {
+    int num=0;
+    while(is>>num)
+      (*v).push_back(num);
+    return v;
+  }
+  void print_vec(vector<int>* v, ostream& os)
+  {
+    for(auto n: (*v))
+      os<<n<<" ";
+    delete v;
+  }
+  ```
+
+- 12.7
+
+  ```C++
+  shared_ptr<vector<int>> vecFactory()
+  {
+    return std::make_shared<vector<int>>();
+  }
+  shared_ptr<vector<int>> read_vec(shared_ptr<vector<int>> v,istream& is)
+  {
+    int num=0;
+    while(is>>num)
+      (*v).push_back(num);
+    return v;
+  }
+  void print_vec(shared_ptr<vector<int>> v, ostream& os)
+  {
+    for(auto n: (*v))
+      os<<n<<" ";
+  }
+  ```
+
+- 12.8: 有错，return时将指针转换成bool，导致其他函数已经无法使用new int这个在动态内存中的对象了，这样的话new int将永远无法被释放
+- 12.9
+  - r 和 q最后都指向new int(42)，r一开始指向的new int(100)永远无法被释放，造成内存泄露
+  - r2和q2最后都指向interesting（42），r2一开始指向的int(100)因为没有智能指针指向它了自动被释放。
+- 12.10: 调用是正确的，但p本身就是智能指针不用在传递参数时显示转换，多此一举了
+- 12.11: 这样会使两个独立的智能指针指向相同的内存，函数结束后内存会被释放，p将会变成空悬指针
+- 12.12
+  1. 合法
+  2. 不合法，内置指针和智能指针不能隐式转换
+  3. 不合法，内置指针和智能指针不能隐式转换
+  4. 合法，但内存会被释放，p变成空悬指针
+- 12.13: 使用get返回的指针的代码不能delete此指针
+- 12.14: 见书上的答案
+- 12.15
+
+  ```C++
+  [](connection* c){delete c;}
+  ```
+
+- 12.16: 无法引用 函数
+
+  ```C++
+  std::unique_ptr<_Tp, _Dp>::unique_ptr(const std::unique_ptr<_Tp, _Dp> &) [其中 _Tp=int, _Dp=std::default_delete<int>]
+  ```
+
+  它是已删除的函数
+- 12.17
+  1. 不合法，不能直接通过一个对象创建unique_ptr
+  2. 不合法，必须将unique_ptr绑定到一个new返回的指针上，普通指针不行
+  3. 合法
+  4. 不合法，必须将unique_ptr绑定到一个new返回的指针上，普通指针不行
+  5. 合法
+  6. 不合法，不使用get()初始化另一个智能指针
+- 12.18: release()函数的作用就是放弃对指针指向对象的控制权，但shared_ptr是多对一的关系，其他的智能指针仍然可以删除这个对象，所以这个函数的话对shared_ptr没意义
+- 12.19: 照着书上抄的  
+  StrBlobPtr类：
+
+  ```C++
+  class StrBlobPtr
+  {
+  private:
+      weak_ptr<vector<string>> wptr;
+      std::size_t curr;
+      shared_ptr<vector<string>>
+      check (std::size_t i, const string& msg) const
+      {
+          auto ret = wptr.lock();
+          if(!ret)
+              throw runtime_error("unbound StrBlobPtr");
+          if(i>=ret->size())
+              throw out_of_range(msg);
+          return ret;
+      }
+  public:
+      StrBlobPtr(): curr(0){}
+      StrBlobPtr(StrBlob& a, std::size_t sz = 0): 
+      wptr(a.data), curr(sz){}
+      string& deref() const
+      {
+          auto p = check(curr, "dereference past end");
+          return (*p)[curr];
+      }
+      StrBlobPtr& incr()
+      {
+          check(curr,"increment past end of StrBlobPtr");
+          ++curr;
+          return *this;
+      }
+      std::size_t getCurr() const
+      {
+          return curr;
+      }
+
+  };
+  ```
+  
+  StrBlob的更新
+
+  ```C++
+  class StrBlobPtr;
+  class StrBlob
+  {
+    friend class StrBlobPtr;
+  public:
+    StrBlobPtr begin();
+    StrBlobPtr end();
+  }
+  StrBlobPtr StrBlob::begin()//注意前向声明问题，函数定义得在StrBlobPtr后面
+  {
+      return StrBlobPtr(*this);
+  }
+  StrBlobPtr StrBlob::end()
+  {
+      return StrBlobPtr(*this, data->size());
+  }
+  ```
+
+- 12.20
+
+  ```C++
+  int main()
+  {
+    ifstream in ("input.txt");
+    string line;
+    StrBlob blob;
+    while(getline(in,line))
+      blob.push_back(line);
+    auto itr = blob.begin();
+    while(itr.getCurr()!=blob.size())
+    {
+      cout<<itr.deref()<<endl;
+      itr.incr();
+    }
+    return 0;
+  }
+  ```
+
+- 12.21：我觉得之前的版本更好，题目中的版本虽然一个语句就能实现，但太复杂、可读性太差了
+- 12.22
+
+  ```C++
+  class ConstStrBlobPtr
+  {
+  private:
+      weak_ptr<vector<string>> wptr;
+      std::size_t curr;
+      shared_ptr<vector<string>>
+      check (std::size_t i, const string& msg) const
+      {
+          auto ret = wptr.lock();
+          if(!ret)
+              throw runtime_error("unbound StrBlobPtr");
+          if(i>=ret->size())
+              throw out_of_range(msg);
+          return ret;
+      }
+  public:
+      ConstStrBlobPtr(): curr(0){}
+      ConstStrBlobPtr(const StrBlob& a, std::size_t sz = 0): 
+      wptr(a.data), curr(sz){}
+      const string& deref() const
+      {
+          auto p = check(curr, "dereference past end");
+          return (*p)[curr];
+      }
+      ConstStrBlobPtr& incr()
+      {
+          check(curr,"increment past end of StrBlobPtr");
+          ++curr;
+          return *this;
+      }
+      std::size_t getCurr() const
+      {
+          return curr;
+      }
+  };
+  ```
+
+- 12.23
+
+  ```C++
+  int main()
+  {
+    char word1[] = "hello";
+    char word2[] = "haha";
+    auto itr = new char[2];//这个长度一点不重要，动态数组后面可以改的
+    strcpy(itr,word1);
+    strcat(itr,word2);
+    cout<<itr<<endl;
+    delete [] itr;
+    return 0;
+  }
+  ```
+
+  ```C++
+  int main()
+  {
+    string word1 = "hello";
+    string word2 = "haha";
+    auto itr = new char[0];
+    strcpy(itr,(word1+word2).c_str());
+    cout<<itr<<endl;
+    delete [] itr;
+    return 0;
+  }
+  ```
+
+- 12.24: 动态数组对于超出数组长度的对象会自动分配内存
+- 12.25
+
+  ```C++
+  delete [] pa;
+  ```
+
+- 12.26
+  
+  ```C++
+  int main()
+  {
+    char word1[] = "hello";
+    char word2[] = "haha";
+    allocator<char> space;
+    auto p = space.allocate(9);
+    auto a = uninitialized_copy_n(word1,strlen(word1),p); //a指向最后构造的元素之后的位置
+    a = uninitialized_copy_n(word2,strlen(word2),a);
+    cout<<p<<endl;
+    string w1 = "helbo", w2 = "haha";
+    while(a!=p)
+      space.destroy(--a);
+    auto b = strcpy(p,w1.c_str()); //b指向最后构造的元素之后的位置
+    b = strcat(b,w2.c_str());
+    cout<<p<<endl;
+    while(b!=p)
+      space.destroy(--b);
+    space.deallocate(p,9);//释放内存
+    return 0;
+  }
+  ```
+
+  ```C++
+  int main()
+  {
+    string word;
+    allocator<string> list;
+    auto begin = list.allocate(10), end = begin;
+    while(cin>>word && end != begin+10)
+      list.construct(end++,word);
+    while(end != begin)
+      list.destroy(--end);
+    list.deallocate(begin,10);//释放内存
+    return 0;
+  }
+  ```
+
+  allocator对于超出长度的对象也会自动分配内存  
+  先destroy再deallocate释放内存
+- 12.27
+
+  ```C++
+  class QueryResult;
+  class TextQuery
+  {
+      friend class QueryResult;
+  private:
+      shared_ptr<vector<string>> v_ptr;
+      shared_ptr<map<string,set<size_t>>> dic_ptr;
+  public:
+      TextQuery(ifstream& in):v_ptr(make_shared<vector<string>>()), dic_ptr(make_shared<map<string,set<size_t>>>())
+      {
+          string line,word;
+          int line_num = 1;
+          while(getline(in,line))
+          {
+              v_ptr->push_back(line);
+              istringstream str_in(line);
+              while(str_in>>word)
+              {
+                  word.erase(remove_if(word.begin(),word.end(),ispunct),word.end()); //删除标点符号
+                  (*dic_ptr)[word].insert(line_num);
+              }
+              ++line_num;
+          }
+      }
+      TextQuery():v_ptr(make_shared<vector<string>>()), dic_ptr(make_shared<map<string,set<size_t>>>()) {}
+      void printVec()//测试代码
+      {
+          for(auto s: (*v_ptr))
+              cout<<s<<endl;
+      }
+      void printMap()//测试代码
+      {
+          for(auto m: (*dic_ptr))
+          {
+              cout<<m.first<<" ";
+              for(auto i: m.second)
+                  cout<<i<<" ";
+              cout<<endl;
+          }
+      }
+      unsigned query(string s) //检测单词是否在文本中，并返回单词在文本中出现的次数
+      {
+          if(dic_ptr->find(s) == dic_ptr->end())
+              throw std::runtime_error("Input word is not in the text"); //如果单词不在文本中，抛出异常
+          unsigned count = 0;
+          string word;
+          for(auto line : (*v_ptr))
+          {
+              istringstream str_in(line);
+              while(str_in>>word)
+              {
+                  word.erase(remove_if(word.begin(),word.end(),ispunct),word.end()); //删除标点符号
+                  if(s == word)
+                      ++count;
+              }
+          }
+          return count;
+      }
+  };
+
+  class QueryResult
+  {
+  private:
+      weak_ptr<vector<string>> v_ptr;
+      weak_ptr<map<string,set<size_t>>> dic_ptr;
+      string word;
+      unsigned count = 0;
+      void check()
+      {
+          if(!v_ptr.lock() || !dic_ptr.lock())
+              throw std::runtime_error("memory has been released!");
+      }
+  public:
+      QueryResult():v_ptr(make_shared<vector<string>>()), dic_ptr(make_shared<map<string,set<size_t>>>()) {}
+      QueryResult(const TextQuery& tq, unsigned c, const string& s): v_ptr(tq.v_ptr), dic_ptr(tq.dic_ptr), count(c), word(s) {}
+      void print()
+      {
+          check();
+          auto sv_ptr = v_ptr.lock();
+          auto sdic_ptr = dic_ptr.lock();
+          cout<<word<<" occurs "<<count<<" times"<<endl;
+          for(auto i: (*sdic_ptr)[word])
+              cout<<"(line "<<i<<") "<<(*sv_ptr)[i-1]<<endl;
+      }
+  };
+  ```
+
+- 12.28: 没有自定义类管理起变量好麻烦
+
+  ```C++
+  void build (vector<string>& v_ptr, map<string, set<size_t>>& dic_ptr, istream& in)
+  {
+    string line,word;
+    int line_num = 1;
+    while(getline(in,line))
+    {
+        v_ptr.push_back(line);
+        istringstream str_in(line);
+        while(str_in>>word)
+        {
+            word.erase(remove_if(word.begin(),word.end(),ispunct),word.end()); //删除标点符号
+            dic_ptr[word].insert(line_num);
+        }
+        ++line_num;
+    }
+  }
+
+  unsigned query(vector<string>& v_ptr, map<string, set<size_t>>& dic_ptr, string s)
+  {
+    if(dic_ptr.find(s) == dic_ptr.end())
+        throw std::runtime_error("Input word is not in the text"); //如果单词不在文本中，抛出异常
+    unsigned count = 0;
+    string word;
+    for(auto line : v_ptr)
+    {
+        istringstream str_in(line);
+        while(str_in>>word)
+        {
+            word.erase(remove_if(word.begin(),word.end(),ispunct),word.end()); //删除标点符号
+            if(s == word)
+                ++count;
+        }
+    }
+    return count;
+  }
+
+  void print(vector<string>& v_ptr, map<string, set<size_t>>& dic_ptr, string word, unsigned count, ostream& os)
+  {
+    os<<word<<" occurs "<<count<<" times"<<endl;
+    for(auto i: dic_ptr[word])
+        os<<"(line "<<i<<") "<<v_ptr[i-1]<<endl; 
+  }
+
+  int main()
+  {
+    ifstream in("input.txt");
+    ofstream os("output.txt");
+    vector<string> vec;
+    map<string, set<size_t>> dic;
+    build(vec, dic, in);
+    while(true)
+    {
+      cout<<"enter word to look for, or q to quit: ";
+      string s;
+      if(!(cin>>s) || s == "q")
+        break;
+      unsigned count = query(vec, dic, s);
+      print(vec, dic, s, count, cout);
+    }
+    return 0;
+  }
+  ```
+
+- 12.29: 交互过程中让用户先输入单词，显然do while更合适，因为一开始不用判断条件。不过本题中条件是true，不管用哪个都是无限循环，所以两种循环在效果上没区别的
+- 12.30: 照抄树上的版本，属实是妙
+
+  ```C++
+  class QueryResult;
+  class TextQuery{
+  public:
+      using line_no = vector<string>::size_type;
+      TextQuery(ifstream&);
+      QueryResult query (const string&) const;
+  private:
+      shared_ptr<vector<string>> file;
+      map<string, shared_ptr<set<line_no>>> wm;
+  };
+  TextQuery::TextQuery(ifstream &is): file(make_shared<vector<string>>())
+  {
+      string text;
+      while(getline(is, text))
+      {
+          file->push_back(text);
+          int n= file->size() - 1;
+          istringstream line(text);
+          string word;
+          while(line>>word)
+          {
+              word.erase(remove_if(word.begin(),word.end(),ispunct),word.end());
+              auto &lines = wm[word];
+              if(!lines)
+                  lines.reset(new set<line_no>);
+              lines->insert(n);
+          }
+      }
+  }
+
+  class QueryResult
+  {
+      friend std::ostream& print(std::ostream&, const QueryResult&); //friend declaration for print
+  public:
+      QueryResult(string s,
+                  shared_ptr<set<TextQuery::line_no>> p,
+                  shared_ptr<vector<string>> f,
+                  unsigned c): sought(s), lines(p), file(f), count(c) {}
+  private:
+      string sought;
+      shared_ptr<set<TextQuery::line_no>> lines;
+      shared_ptr<vector<string>> file;
+      unsigned count;
+  };
+
+  QueryResult TextQuery::query(const string &sought) const
+  {
+      static shared_ptr<set<TextQuery::line_no>> nodata (make_shared<set<TextQuery::line_no>>());
+      auto loc = wm.find(sought);
+      string word;
+      unsigned count = 0;
+      if(loc == wm.end())
+          return QueryResult(sought, nodata, file, 0);
+      else
+      {
+          for(auto line:(*file))
+          {
+              istringstream lines(line);
+              while(lines>>word)
+              {
+                  word.erase(remove_if(word.begin(),word.end(),ispunct),word.end());
+                  if(word == sought)
+                      ++count;
+              }
+          }
+          return QueryResult(sought, loc->second, file, count);
+      }
+  }
+  ```
+
+- 12.31：肯定set更好，vector不会自动排序的
+- 12.32
+
+  ```C++
+  class QueryResult;
+  class TextQuery{
+  public:
+      using line_no = vector<string>::size_type;
+      TextQuery(ifstream&);
+      QueryResult query (const string&);
+  private:
+      StrBlob file;
+      map<string, shared_ptr<set<line_no>>> wm;
+  };
+  TextQuery::TextQuery(ifstream &is): file()
+  {
+      string text;
+      while(getline(is, text))
+      {
+          file.push_back(text);
+          int n = file.size() - 1;
+          istringstream line(text);
+          string word;
+          while(line>>word)
+          {
+              word.erase(remove_if(word.begin(),word.end(),ispunct),word.end());
+              auto &lines = wm[word];
+              if(!lines)
+                  lines.reset(new set<line_no>);
+              lines->insert(n);
+          }
+      }
+  }
+
+  class QueryResult
+  {
+      friend std::ostream& print(std::ostream&, QueryResult&); //friend declaration for print
+  public:
+      QueryResult(string s,
+                  shared_ptr<set<TextQuery::line_no>> p,
+                  StrBlob f,
+                  unsigned c): sought(s), lines(p), file(f), count(c) {}
+  private:
+      string sought;
+      shared_ptr<set<TextQuery::line_no>> lines;
+      StrBlob file;
+      unsigned count;
+  };
+
+  QueryResult TextQuery::query(const string &sought)
+  {
+      static shared_ptr<set<TextQuery::line_no>> nodata (make_shared<set<TextQuery::line_no>>());
+      auto loc = wm.find(sought);
+      string word;
+      unsigned count = 0;
+      if(loc == wm.end())
+          return QueryResult(sought, nodata, file, 0);
+      else
+      {
+          for(auto begin = file.begin(); begin.getCurr() != file.size(); begin.incr())
+          {
+              istringstream lines(begin.deref());
+              while(lines>>word)
+              {
+                  word.erase(remove_if(word.begin(),word.end(),ispunct),word.end());
+                  if(word == sought)
+                      ++count;
+              }
+          }
+          return QueryResult(sought, loc->second, file, count);
+      }
+  }
+  ```
+
+  ```C++
+  string make_plural(size_t ctr, const string &word, const string &ending)
+  {
+    return (ctr>1)? word+ending : word;
+  }
+  std::ostream& print(std::ostream& os, QueryResult& qr) //definition for print
+  {
+      os<<qr.sought<<" occurs "<<qr.count<<" "
+      <<make_plural(qr.count, "times", "s")<<endl;
+      for(auto num : *qr.lines)
+          os<<"\t(Line "<<num+1<<") "<<qr.file.get(num)<<endl;
+      return os;
+  }
+
+  void runQueries(ifstream &infile)
+  {
+    TextQuery tq(infile);
+    do
+    {
+      /* code */
+      cout<<"enter word to look for, or q to quit: ";
+      string s;
+      if(!(cin>>s) || s== "q") break;
+      auto qr = tq.query(s); //不能把引用绑定在一个右值上
+      print(cout, qr)<<endl; 
+    } while (true);
+  }
+  ```
+
+- 12.33: 题目的意思好像是把 ```shared_ptr<vector<string>>``` 改成  ```shared_ptr<StrBlob>``` 不过两个版本差别不大，指针版本就把所有地方加个解引用就是了
+
+  ```C++
+  set<TextQuery::line_no>::iterator begin()
+  {
+      return lines->begin();
+  }
+  set<TextQuery::line_no>::iterator end()
+  {
+      return lines->end();
+  }
+  shared_ptr<StrBlob> get_file()
+  {
+      return make_shared<StrBlob>();
+  }
+  ```
+
+### 心得
+
+- 类定义中的类型别名必须在使用前就出现过，但成员变量和函数不需要。
+- 标准库容器的指针直接在前面加上解引用就可以像往常一样使用，注意运算符优先级，解引用符有时要加上括号
+- 对哑类定义的智能指针，第一个参数必须是一个指向哑类对象的指针，而不是直接一个哑类对象。可以在哑类对象前面加上&
+- 内置字符数组或指针可以直接打印
+- shared_ptr声明后不分配内存，得用make_shared初始化
+- reset的参数只能用new，不能用make_shared
+- 头文件之间最好别相互include
+- 如果编译器给的错误信息太过模糊，可以运行下程序会给你更多更详细的错误信息
